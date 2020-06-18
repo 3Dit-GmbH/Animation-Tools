@@ -15,10 +15,33 @@ class JoinAnimationOperator(bpy.types.Operator):
     def execute(self, context):
         sel_objects = context.selected_objects
         for obj in sel_objects:
-            action = obj.animation_data.action
-            if action:
-                track = obj.animation_data.nla_tracks.new()
-                track.strips.new(self.anim_name, action.frame_range[1], action)
+            if hasattr(obj.animation_data,"action"):
+                action = obj.animation_data.action
+                if action:
+                    track = obj.animation_data.nla_tracks.new()
+                    track.strips.new(self.anim_name, action.frame_range[0], action)
+                    track.name = self.anim_name
+                    obj.animation_data.action = None
+        return {"FINISHED"}
+
+
+class RenameNLAAnimationOperator(bpy.types.Operator):
+    bl_idname = "scene.rename_anim"
+    bl_label = "Rename Animation"
+    bl_description = "Rename NLA Tracks on selected objects"
+    bl_options = {"REGISTER"}
+
+    anim_name : bpy.props.StringProperty()
+    index = 0
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        sel_objects = context.selected_objects
+        for obj in sel_objects:
+                track = obj.animation_data.nla_tracks[self.index]
                 track.name = self.anim_name
-                obj.animation_data.action = None
+
         return {"FINISHED"}

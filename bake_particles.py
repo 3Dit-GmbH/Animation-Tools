@@ -1,6 +1,5 @@
 import bpy
 
-
 class BakeParticlesOperator(bpy.types.Operator):
     """Bake all Particles to Keyframes"""
     bl_idname = "object.bake_particles"
@@ -13,8 +12,11 @@ class BakeParticlesOperator(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if len(context.object.particle_systems) > 0:
-            return True
+        obj = context.object
+        if obj :
+            if obj.type == "MESH":
+                if len(obj.particle_systems) > 0:
+                    return True
         return False
 
     def create_objects_for_particles(self, ps, obj):
@@ -24,19 +26,27 @@ class BakeParticlesOperator(bpy.types.Operator):
         mesh = obj.data
 
         # Create a new collection and link it to the scene.
-        particleCollection = bpy.data.collections.new("Particle Collection")
-        bpy.context.scene.collection.children.link(particleCollection)
+        collection_name = bpy.context.scene.particle_settings.collection_name
+        particle_collection = bpy.data.collections.get(collection_name)
+
+        if particle_collection is None:
+           particle_collection = bpy.data.collections.new(collection_name)
+
+        if bpy.context.scene.collection.children.get(collection_name) is None:
+            bpy.context.scene.collection.children.link(particle_collection)
 
         for particle in ps.particles:
             dupli = bpy.data.objects.new(name=obj.name, object_data=mesh)
-            particleCollection.objects.link(dupli)
+            particle_collection.objects.link(dupli)
             obj_list.append(dupli)
+            
         return obj_list
 
     def match_and_keyframe_objects(self, ps, obj_list, start_frame, end_frame):
         # Match and keyframe the objects to the particles for every frame in the
         # given range.
-        for frame in range(start_frame, end_frame + 1):
+        frame_offset = bpy.context.scene.particle_settings.frame_offset
+        for frame in range(start_frame, end_frame + 1,frame_offset):
             bpy.context.scene.frame_set(frame)
             for p, obj in zip(ps.particles, obj_list):
                 self.match_object_to_particle(p, obj)
@@ -48,19 +58,24 @@ class BakeParticlesOperator(bpy.types.Operator):
         loc = p.location
         rot = p.rotation
         size = p.size
-        obj.location = loc
         # Set rotation mode to quaternion to match particle rotation.
         obj.rotation_mode = 'QUATERNION'
         obj.rotation_quaternion = rot
-        obj.scale = (size, size, size)
-        if self.KEYFRAME_VISIBILITY:
-            if p.alive_state == 'ALIVE':
-                vis = True
-            else:
-                vis = False
 
-            obj.hide_viewport = not(vis)
-            obj.hide_render = not(vis)
+        if self.KEYFRAME_VISIBILITY:
+            if p.alive_state != 'ALIVE':
+                size *= 0.01
+                self.KEYFRAME_LOCATION = False
+            else:
+                self.KEYFRAME_LOCATION = True
+
+                
+        obj.location = loc
+        obj.scale = (size, size, size)
+
+
+        # obj.hide_viewport = not(vis)
+        # obj.hide_render = not(vis)
 
     def keyframe_obj(self, obj):
         # Keyframe location, rotation, scale and visibility if specified.
@@ -70,27 +85,37 @@ class BakeParticlesOperator(bpy.types.Operator):
             obj.keyframe_insert("rotation_quaternion")
         if self.KEYFRAME_SCALE:
             obj.keyframe_insert("scale")
-        if self.KEYFRAME_VISIBILITY:
-            obj.keyframe_insert("hide_viewport")
-            obj.keyframe_insert("hide_render")
+        # if self.KEYFRAME_VISIBILITY:
+        #     obj.keyframe_insert("hide_viewport")
+        #     obj.keyframe_insert("hide_render")
 
-    # def main():
 
     def execute(self, context):
+        # go to start frame
+        bpy.context.scene.frame_set(0)
 
-        # Assume only 2 objects are selected.
-        # The active object should be the one with the particle system.
+        # get emitter and instance
         emitter = bpy.context.object
-        instance = emitter.particle_systems[0].settings.instance_object
+        ps_list = emitter.particle_systems
+        for i,ps in enumerate(ps_list):
+            instance = ps.settings.instance_object
 
-        depsgraph = bpy.context.evaluated_depsgraph_get()
+            depsgraph = bpy.context.evaluated_depsgraph_get()
 
-        # Extract locations
-        ps = depsgraph.objects[emitter.name].particle_systems[0]
+            # Extract locations
+            ps = depsgraph.objects[emitter.name].particle_systems[i]
 
-        start_frame = bpy.context.scene.frame_start
-        end_frame = bpy.context.scene.frame_end
-        obj_list = self.create_objects_for_particles(ps, instance)
-        self.match_and_keyframe_objects(ps, obj_list, start_frame, end_frame)
+            start_frame = bpy.context.scene.frame_start
+            end_frame = bpy.context.scene.frame_end
+            obj_list = self.create_objects_for_particles(ps, instance)
+            self.match_and_keyframe_objects(ps, obj_list, start_frame, end_frame)
 
+        # Simplify
+        bpy.ops.object.select_all(action='DESELECT')
+
+        collection_name = bpy.context.scene.particle_settings.collection_name
+        for obj in bpy.data.collections[collection_name].all_objects:
+            obj.select_set(True)
+
+       
         return {'FINISHED'}

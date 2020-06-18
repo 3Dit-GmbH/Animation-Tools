@@ -16,7 +16,7 @@ from . bake_particles import BakeParticlesOperator
 
 from . import auto_load
 bl_info = {
-    "name": "ParticleSystemKeyframe",
+    "name": "PS to Keyframe",
     "author": "Lorenz Wieseke",
     "description": "",
     "blender": (2, 80, 0),

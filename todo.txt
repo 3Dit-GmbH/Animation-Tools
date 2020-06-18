@@ -1,0 +1,2 @@
+apply scale on original particle before baking particle system
+make bake particles operator modal to abort baking
