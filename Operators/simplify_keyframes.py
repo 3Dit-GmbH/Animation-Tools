@@ -11,15 +11,20 @@ class SimplifyKeyframes(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return True
+        display_button = False
+
+        # at least one object with animation on it
+        sel_objects = context.selected_objects
+        for obj in sel_objects:
+            if obj.animation_data is not None:
+                display_button = True
+
+        return display_button
 
     def execute(self, context):
         context.area.type = 'GRAPH_EDITOR'
         bpy.ops.graph.select_all(action='SELECT')
-
-        # bpy.ops.graph.decimate(mode='RATIO', remove_ratio=0.8)
         bpy.ops.graph.decimate(mode=self.mode,remove_ratio=self.decimate_ratio, remove_error_margin=self.decimate_ratio)
-
         context.area.type = 'VIEW_3D'
 
         return {"FINISHED"}

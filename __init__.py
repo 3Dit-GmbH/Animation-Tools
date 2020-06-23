@@ -11,9 +11,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from . panel import BakeParticlesPanel
-from . bake_particles import BakeParticlesOperator
-
 from . import auto_load
 bl_info = {
     "name": "PS to Keyframe",

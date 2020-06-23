@@ -15,13 +15,16 @@ class JoinAnimationOperator(bpy.types.Operator):
     def execute(self, context):
         sel_objects = context.selected_objects
         for obj in sel_objects:
-            if hasattr(obj.animation_data,"action"):
-                action = obj.animation_data.action
-                if action:
-                    track = obj.animation_data.nla_tracks.new()
-                    track.strips.new(self.anim_name, action.frame_range[0], action)
-                    track.name = self.anim_name
-                    obj.animation_data.action = None
+            if obj.animation_data is None:
+                continue
+            if obj.animation_data.action is None:
+                continue
+            # if hasattr(obj.animation_data,"action"):
+            action = obj.animation_data.action
+            track = obj.animation_data.nla_tracks.new()
+            track.strips.new(self.anim_name, action.frame_range[0], action)
+            track.name = self.anim_name
+            obj.animation_data.action = None
         return {"FINISHED"}
 
 

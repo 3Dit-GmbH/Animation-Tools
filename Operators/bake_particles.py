@@ -65,10 +65,6 @@ class BakeParticlesOperator(bpy.types.Operator):
         if self.KEYFRAME_VISIBILITY:
             if p.alive_state != 'ALIVE':
                 size *= 0.01
-                self.KEYFRAME_LOCATION = False
-            else:
-                self.KEYFRAME_LOCATION = True
-
                 
         obj.location = loc
         obj.scale = (size, size, size)
@@ -103,7 +99,12 @@ class BakeParticlesOperator(bpy.types.Operator):
             depsgraph = bpy.context.evaluated_depsgraph_get()
 
             # Extract locations
+
             ps = depsgraph.objects[emitter.name].particle_systems[i]
+            
+            # update ps hack
+            bpy.data.particles[ps.name].count += 1
+            bpy.data.particles[ps.name].count -= 1
 
             start_frame = bpy.context.scene.frame_start
             end_frame = bpy.context.scene.frame_end
